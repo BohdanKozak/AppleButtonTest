@@ -3,30 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <title>Apple Pay Button</title>
-  <style>
-    #apple-pay-button {
-      width: 220px;
-      height: 44px;
-      margin-top: 50px;
-      cursor: pointer;
-      display: inline-block;
-      -webkit-appearance: -apple-pay-button;
-      -apple-pay-button-type: plain;
-      -apple-pay-button-style: black;
-    }
-  </style>
 </head>
 <body>
 
 <div id="apple-pay-button" role="button" lang="en"></div>
 
 <script>
+    function createApplePayButton() {
+      const button = document.createElement("button");
+      button.id = "applepay_button";
+      button.setAttribute("type", "button");
+      button.setAttribute("lang", "en");
+      button.setAttribute("role", "button");
+
+      Object.assign(button.style, {
+        width: "220px",
+        height: "44px",
+        cursor: "pointer",
+        display: "inline-block",
+        WebkitAppearance: "-apple-pay-button"
+      });
+      button.style.setProperty("-apple-pay-button-style", "black");
+      button.style.setProperty("-apple-pay-button-type", "plain");
+
+      return button;
+    }
+
+
   if (window.ApplePaySession && ApplePaySession.canMakePayments()) {
-    const button = document.getElementById('apple-pay-button');
-
-    function startApplePaySession() {
-      alert('Apple Pay button clicked');
-
+    const button = createApplePayButton();
+    document.getElementById("apple-pay-button").appendChild(button);
+    
+    button.addEventListener('click', () => {
+      button.disabled = true;
+      
       const paymentRequest = {
         countryCode: 'US',
         currencyCode: 'USD',
@@ -39,23 +49,20 @@
         }
       };
 
-      const session = new ApplePaySession(3, paymentRequest);
+      const session = new ApplePaySession(4, paymentRequest);
 
       session.onvalidatemerchant = async (event) => {
-        alert('Validating merchant: ' + event.validationURL);
         try {
-          const response = await fetch('https://webhook.site/9ea607a3-6f40-4806-86ef-e807eca0d9f8', {
+          const response = await fetch('https://applemerchantvalidatortest.onrender.com/validate-merchant', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ validationUrl: event.validationURL }),
           });
 
-          alert('Merchant validation response status: ' + response.status);
-
           if (!response.ok) throw new Error('Merchant validation failed');
 
           const merchantSession = await response.json();
-          alert('Merchant validation succeeded');
+
           session.completeMerchantValidation(merchantSession);
         } catch (err) {
           alert('Merchant validation failed: ' + err.message);
@@ -63,17 +70,18 @@
         }
       };
 
-      session.onpaymentauthorized = (event) => {
-        alert('Payment authorized: ' + JSON.stringify(event.payment));
+      session.onpaymentauthorized = async (event) => {
+        const authorizedResponse = await fetch('https://applemerchantvalidatortest.onrender.com/authorize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: event.payment.token }),
+          });
+
         session.completePayment(ApplePaySession.STATUS_SUCCESS);
       };
 
       session.begin();
-      alert('Apple Pay session started');
-    }
-
-    button.addEventListener('click', startApplePaySession);
-    button.addEventListener('touchstart', startApplePaySession);
+    });
 
   } else {
     const button = document.getElementById('apple-pay-button');
