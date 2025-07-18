@@ -46,7 +46,7 @@
         try {
           const response = await fetch('https://webhook.site/aca7ec0d-c122-411b-b59c-d56cf9ccccc4', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            // headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ validationUrl: event.validationURL }),
           });
 
